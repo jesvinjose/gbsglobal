@@ -15,18 +15,16 @@ app.use(bodyparser.json({ limit: "500mb" }));
 // Enable CORS for all routes
 app.use(cors({ origin: true, credentials: true }));
 
-
-
 const adminRoute = require("./routes/adminRoutes");
-
+const userRoute = require("./routes/userRoutes");
 
 app.use("/api/admin", adminRoute);
+app.use("/api/user",userRoute);
 
 // Basic route
 app.get("/", (req, res) => {
   res.send("Hello World");
 });
-
 
 // Start the server
 app.listen(port, async () => {

@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { BaseUrl } from "../../BaseUrl";
-function Login() {
+
+function UserLogin() {
   // State to store email and password
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState(""); 
@@ -16,16 +17,16 @@ function Login() {
 
     try {
       // Make an Axios POST request to your backend API
-      const response = await axios.post(`${BaseUrl}/api/admin/adminlogin`, {
+      const response = await axios.post(`${BaseUrl}/api/user/userlogin`, {
         email: email,
         password: password,
       });
 
       // Handle the response from the backend
-      if (response.data.message === 'Valid Admin') {
+      if (response.data.message === 'Valid User') {
         // You can save the token to local storage or handle it as needed
-        localStorage.setItem('token', response.data.token);
-        navigate('/dashboard')
+        localStorage.setItem('usertoken', response.data.token);
+        navigate('/userprofile')
       } else {
         setErrorMessage(response.data.message); // Display error message from backend
         console.log(response.data.message)
@@ -45,7 +46,7 @@ function Login() {
           alt="Your Company"
         ></img>
         <h2 class="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
-          Sign in to Admin account
+          Sign in to User account
         </h2>
       </div>
 
@@ -110,4 +111,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default UserLogin;
