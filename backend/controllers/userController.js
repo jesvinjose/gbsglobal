@@ -8,6 +8,13 @@ const addUser = async (req, res) => {
     console.log("inside addUser");
     
     const { name, email, mobile, place } = req.body;
+
+    // Check for required fields (validation)
+    if (!name || !email || !mobile || !place) {
+      return res.status(400).json({ message: "All fields are required." });
+    }
+
+
     // Generate an 8-character random password
     const password = crypto.randomBytes(4).toString("hex").slice(0, 8); // Generates a random 8-character password
 
@@ -15,7 +22,8 @@ const addUser = async (req, res) => {
       service: "gmail",
       auth: {
         user: "jesvinjose49@gmail.com",
-        pass: "yyrasmmhnslhbidv",
+        // pass: "yyrasmmhnslhbidv",
+        pass:process.env.EMAIL_PASSWORD
       },
     });
     const mailOptions = {
@@ -91,17 +99,27 @@ const deleteUser = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const id = req.params.id;
-    const { name, mobile, place } = req.body; // Extract latitude and longitude
+    const { name, mobile, place } = req.body;
 
-    // Fetch the existing user to get the current image path
+    // Check if required fields are present
+    if (!name || !mobile || !place) {
+      return res.status(400).json({ message: "All fields are required." });
+    }
+
+    // Validate mobile format (example: 10 digits)
+    const mobileRegex = /^[0-9]{10}$/;
+    if (!mobileRegex.test(mobile)) {
+      return res.status(400).json({ message: "Invalid mobile number format." });
+    }
+
+    // Find existing user by ID
     const existingUser = await User.findById(id);
-
     if (!existingUser) {
       return res.status(404).json({ message: "User not found." });
     }
 
     // Prepare the updated data
-    let updatedData = {
+    const updatedData = {
       name,
       mobile,
       place,
@@ -112,12 +130,13 @@ const updateUser = async (req, res) => {
       new: true,
     });
 
-    res.status(200).json({ user: updatedUser });
+    res.status(200).json({ message: "User updated successfully", user: updatedUser });
   } catch (error) {
     console.error("Error updating user:", error);
     res.status(500).json({ message: "Internal server error." });
   }
 };
+
 
 const verifyUserLogin = async (req, res) => {
     try {

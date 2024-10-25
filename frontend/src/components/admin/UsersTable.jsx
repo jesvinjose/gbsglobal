@@ -8,6 +8,9 @@ function UsersTable() {
   const [showEditForm, setShowEditForm] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const [loadingForAdd, setLoadingForAdd] = useState(false);
+  const [loadingForEdit, setLoadingForEdit] = useState(false);
+
   const [user, setUser] = useState({
     name: "",
     email: "",
@@ -43,57 +46,109 @@ function UsersTable() {
       return;
     }
 
-    setLoading(true);
+    setLoadingForAdd(true);
     try {
       const response = await axios.post(`${BaseUrl}/api/user/adduser`, user);
-      // console.log(response.data.user,"<-------------check");
+
       if (response.status === 201) {
         alert("User added successfully!");
-        setUsers((prevUsers) => [...prevUsers, response.data.user]);        
+        setUsers((prevUsers) => [...prevUsers, response.data.user]);
         setUser({ name: "", email: "", mobile: "", place: "" }); // Clear form
         setShowAddForm(false);
       } else {
-        alert("Failed to add user. Please try again.");
+        // You could handle different responses with custom messages
+        if (response.status === 400) {
+          alert("Bad request. Please check the data and try again.");
+        } else if (response.status === 500) {
+          alert("Server error. Please try again later.");
+        } else {
+          alert("Failed to add user. Please try again.");
+        }
       }
     } catch (error) {
-      console.error("Error adding the user!", error);
-      alert("Error adding user. Please try again later.");
+      if (error.response) {
+        // Errors with response (e.g., validation failure)
+        console.error("Error response from server:", error.response);
+        alert(
+          error.response.data.message || "Error adding user. Please try again."
+        );
+      } else if (error.request) {
+        // Errors with no response (e.g., network errors)
+        console.error("No response received from server:", error.request);
+        alert("Network error. Please check your connection and try again.");
+      } else {
+        // General error message
+        console.error("Error adding the user:", error.message);
+        alert("An unknown error occurred. Please try again.");
+      }
     } finally {
-      setLoading(false);
+      setLoadingForAdd(false);
     }
   };
 
   // Handle deleting a user
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this user?")) {
+      setLoading(true); // Add a loading state
       try {
         const response = await fetch(`${BaseUrl}/api/user/deleteuser/${id}`, {
           method: "DELETE",
         });
+
+        // Handle different response codes
         if (!response.ok) {
-          throw new Error("Failed to delete user");
+          const errorData = await response.json(); // Extract error message from the server
+          if (response.status === 404) {
+            throw new Error("User not found.");
+          } else {
+            throw new Error(errorData.message || "Failed to delete user.");
+          }
         }
+
+        // Success: Remove the deleted user from the state
         setUsers((prevUsers) => prevUsers.filter((user) => user._id !== id));
+        alert("User deleted successfully.");
       } catch (error) {
-        console.error("Error deleting user:", error);
-        alert("Error deleting user. Please try again.");
+        if (error.message === "User not found.") {
+          alert("This user was not found and may have already been deleted.");
+        } else if (error.message.includes("Failed to fetch")) {
+          // Handling network-related errors specifically
+          alert(
+            "Unable to connect to the server. Please check your network connection."
+          );
+        } else {
+          console.error("Error deleting user:", error);
+          alert(
+            error.message || "Error deleting user. Please try again later."
+          );
+        }
+      } finally {
+        setLoading(false); // Reset loading state
       }
     }
   };
 
   // Handle updating a user
   const handleUpdateUser = async () => {
+    // Frontend validation for required fields and mobile format
     if (!user.name || !user.mobile || !user.place) {
       alert("All fields are required.");
       return;
     }
 
-    setLoading(true);
+    const mobileRegex = /^[0-9]{10}$/;
+    if (!mobileRegex.test(user.mobile)) {
+      alert("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+
+    setLoadingForEdit(true); // Start loading state
     try {
       const response = await axios.put(
         `${BaseUrl}/api/user/updateuser/${user._id}`,
         user
       );
+
       if (response.status === 200) {
         alert("User updated successfully!");
         setUsers((prevUsers) =>
@@ -102,15 +157,23 @@ function UsersTable() {
           )
         );
         setUser({ name: "", email: "", mobile: "", place: "" }); // Clear form
-        setShowEditForm(false);
-      } else {
-        alert("Failed to update user. Please try again.");
+        setShowEditForm(false); // Hide edit form
       }
     } catch (error) {
-      console.error("Error updating the user!", error);
-      alert("Error updating user. Please try again later.");
+      if (error.response) {
+        if (error.response.status === 400) {
+          alert(error.response.data.message); // Show backend validation error
+        } else if (error.response.status === 404) {
+          alert("User not found.");
+        } else {
+          alert("Failed to update user. Please try again later.");
+        }
+      } else {
+        console.error("Error updating the user:", error);
+        alert("Error updating user. Please try again later.");
+      }
     } finally {
-      setLoading(false);
+      setLoadingForEdit(false); // End loading state
     }
   };
 
@@ -120,9 +183,9 @@ function UsersTable() {
     setShowEditForm(true); // Show the add/edit form
   };
 
-  const handleCancel=()=>{
-    setShowEditForm(false)
-  }
+  const handleCancel = () => {
+    setShowEditForm(false);
+  };
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center">
       <div className="w-full max-w-4xl mt-8 bg-white shadow-lg rounded-lg p-6">
@@ -163,20 +226,27 @@ function UsersTable() {
               className="w-full mb-4 px-4 py-2 border border-gray-300 rounded-md"
             />
             <button
-              onClick={user._id ? handleUpdateUser : handleAddUser} // Determine which action to take
-              className={`bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition ${
-                loading ? "opacity-50 cursor-not-allowed" : ""
+              onClick={handleUpdateUser}
+              className={`bg-green-500 text-white px-4 py-2 rounded-md transition ${
+                loadingForEdit
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-green-600"
               }`}
-              disabled={loading}
+              disabled={loadingForEdit}
             >
-              {loading
-                ? "Processing..."
-                : user._id
-                ? "Update User"
-                : "Cancel"}
+              {loadingForEdit ? "Processing..." : "Update User"}
             </button>
-            <button className="bg-red-500 text-white px-4 py-2 rounded-md" onClick={handleCancel}>
-Cancel
+
+            <button
+              onClick={handleCancel}
+              className={`bg-red-500 text-white px-4 py-2 rounded-md transition ${
+                loadingForEdit
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-red-600"
+              }`}
+              disabled={loadingForEdit}
+            >
+              Cancel
             </button>
           </div>
         )}
@@ -215,11 +285,11 @@ Cancel
             <button
               onClick={handleAddUser}
               className={`bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition ${
-                loading ? "opacity-50 cursor-not-allowed" : ""
+                loadingForAdd ? "opacity-50 cursor-not-allowed" : ""
               }`}
-              disabled={loading}
+              disabled={loadingForAdd}
             >
-              {loading ? "Adding..." : "Add User"}
+              {loadingForAdd ? "Adding..." : "Add User"}
             </button>
           </div>
         )}
@@ -252,9 +322,15 @@ Cancel
                       </button>
                       <button
                         onClick={() => handleDelete(user._id)}
-                        className="ml-2 bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition"
+                        className={`ml-2 bg-red-500 text-white px-4 py-2 rounded-md transition ${
+                          loading
+                            ? "bg-red-300 cursor-not-allowed"
+                            : "hover:bg-red-600"
+                        }`}
+                        disabled={loading} // Disable the button when loading
                       >
-                        Delete
+                        {loading ? "Deleting..." : "Delete"}{" "}
+                        {/* Show "Deleting..." when loading */}
                       </button>
                     </td>
                   </tr>
