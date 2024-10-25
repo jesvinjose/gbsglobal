@@ -1,11 +1,12 @@
 const User = require("../models/userModel");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
-const jwt = require("jsonwebtoken"); // Make sure jwt is imported
+const jwt = require("jsonwebtoken"); 
+require("dotenv").config();
 
 const addUser = async (req, res) => {
   try {
-    console.log("inside addUser");
+    // console.log("inside addUser");
     
     const { name, email, mobile, place } = req.body;
 
@@ -22,7 +23,6 @@ const addUser = async (req, res) => {
       service: "gmail",
       auth: {
         user: "jesvinjose49@gmail.com",
-        // pass: "yyrasmmhnslhbidv",
         pass:process.env.EMAIL_PASSWORD
       },
     });
