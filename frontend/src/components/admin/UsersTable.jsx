@@ -46,12 +46,12 @@ function UsersTable() {
     setLoading(true);
     try {
       const response = await axios.post(`${BaseUrl}/api/user/adduser`, user);
+      // console.log(response.data.user,"<-------------check");
       if (response.status === 201) {
         alert("User added successfully!");
-        setUsers((prevUsers) => [...prevUsers, response.data]);
+        setUsers((prevUsers) => [...prevUsers, response.data.user]);        
         setUser({ name: "", email: "", mobile: "", place: "" }); // Clear form
         setShowAddForm(false);
-        fetchUsers();
       } else {
         alert("Failed to add user. Please try again.");
       }

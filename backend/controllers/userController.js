@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken"); // Make sure jwt is imported
 const addUser = async (req, res) => {
   try {
     console.log("inside addUser");
-
+    
     const { name, email, mobile, place } = req.body;
     // Generate an 8-character random password
     const password = crypto.randomBytes(4).toString("hex").slice(0, 8); // Generates a random 8-character password
